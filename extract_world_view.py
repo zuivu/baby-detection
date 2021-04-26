@@ -74,7 +74,7 @@ if __name__  == "__main__":
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))     # 720 px
     print("frame rate:", frame_rate, "width:", width, "height:", height)
 
-    # Export
+    # Prepare output video
     os.makedirs(os.path.join("output", date_recording), exist_ok=True)
     video_out = cv2.VideoWriter(filename=os.path.join("output", date_recording, f"{session_number}_world_view_with_detection.avi"), 
                                 apiPreference=cv2.CAP_ANY,
@@ -116,7 +116,7 @@ if __name__  == "__main__":
             time.sleep(0.01) # Add some delay to avoid processing too fast
             
             #cv2.imshow('Recording', frame)
-            #video_out.write(frame)
+            video_out.write(frame)
             
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 sys.exit()
@@ -124,4 +124,16 @@ if __name__  == "__main__":
     cap.release()
     video_out.release() 
 
+"""
+srun \
+>     --pty \
+>     --job-name pepe_run \
+>     --partition gpu \
+>     --gres gpu:1 \
+>     --mem-per-cpu 1G \
+>     --ntasks 1 \
+>     --cpus-per-task 10 \
+>     --time 00:30:00 \
+>     python extract_world_view.py 003
+"""
 # EOF
