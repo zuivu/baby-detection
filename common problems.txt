@@ -1,0 +1,1 @@
+1. ERROR: Failed building wheel for detectron2 / Failed to build detectron2: Check and load correct GCC version (https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements)
