@@ -83,9 +83,9 @@ def get_config(config_file):
         print("CUDA is not available!")
         cfg.MODEL.DEVICE = "cpu"
 
-    return DefaultPredictor(cfg), VideoVisualizer(MetadataCatalog.get(cfg.DATASETS.TRAIN[0])), cfg
+    return DefaultPredictor(cfg), VideoVisualizer(MetadataCatalog.get(cfg.DATASETS.TRAIN[0]))
 
-def detect_person(im, predictor, person_ind=0):
+def detect_person(im, predictor):
     """Find persons in the image
 
     :param im: Image in the format of BGR with shape (H, W, 3)
@@ -100,7 +100,8 @@ def detect_person(im, predictor, person_ind=0):
     # look at the outputs. See https://detectron2.readthedocs.io/tutorials/models.html#model-output-format for specification
     outputs = predictor(im)
     output_instances = outputs["instances"].to("cpu")
-    person_instances = output_instances[output_instances.pred_classes == person_ind]
+    person_id = predictor.metadata.thing_classes.index('person')
+    person_instances = output_instances[output_instances.pred_classes == person_id]
     return person_instances
 
 def visualize(frame, pred_instance, visualizer, show=False, rgb=False):
@@ -160,7 +161,8 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     print(f"{discarded*100:.2f}% of gaze points is discarded due to low confidence (<{gaze_thres})")
     
     # Prepare output video
-    video_out = cv2.VideoWriter(filename=os.path.join(recording_dir, "world_view_with_detection.avi"), 
+    dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")   # Using current date and time for unique file name
+    video_out = cv2.VideoWriter(filename=os.path.join(recording_dir, f"world_view_with_detection_{dt_string}.avi"), 
                                 apiPreference=cv2.CAP_ANY,
                                 fourcc=cv2.VideoWriter_fourcc(*"XVID"), 
                                 fps=frame_rate, 
@@ -238,14 +240,10 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     gaze_df["is_baby"] = detect_baby
     gaze_df["in_segmentation"] = gaze_in_segment
     gaze_df["in_bounding_box"] = gaze_in_box
-
-    dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")   # Using current date and time for unique file name
-    out_file_name = f"gaze_positions_on_baby_{dt_string}.csv"
-    gaze_df.to_csv(os.path.join(gaze_data_dir, out_file_name), index_label=False)
+    gaze_df.to_csv(os.path.join(gaze_data_dir, f"gaze_positions_on_baby_{dt_string}.csv"))
 
 if __name__ == "__main__":
-    predictor, visualizer, cfg = get_config("COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
-    person_ind = MetadataCatalog.get(cfg.DATASETS.TRAIN[0]).thing_classes.index('person') # Different dataset may have different index for person/human
+    predictor, visualizer = get_config("COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
     dir = sys.argv[-1]
     baby_detection(dir, predictor, visualizer)
 
