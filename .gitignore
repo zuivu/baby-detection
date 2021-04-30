@@ -131,3 +131,6 @@ dmypy.json
 # Data from local computer
 /003
 /output
+
+# bash file containing private info 
+run.sh
