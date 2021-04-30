@@ -133,4 +133,4 @@ dmypy.json
 /output
 
 # bash file containing private info 
-run.sh
+*run.sh
