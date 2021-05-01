@@ -4,12 +4,24 @@ Setup Anaconda environment for the system use following:
     conda create --name <env_name>
     conda activate <env_name>
     conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
-    conda install -c conda-forge opencv 
+    
+    Run the following everytime starting the narvi cluster:
+    gcc --version / g++ --version to check version
+    module spider GCC (to check available GCC versions) 
+    module load GCC/8.3.0 (load any GCC version satisfying requirement https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements)
+    
     python -m pip install 'git+https://github.com/facebookresearch/detectron2.git' (https://detectron2.readthedocs.io/en/latest/tutorials/install.html#build-detectron2-from-source)
-    #python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu102/torch1.8/index.html
-    conda install -c anaconda cudnn
+    
+    needed or not : pip install git+https://github.com/facebookresearch/fvcore
+
+    conda install -c conda-forge opencv OR pip install opencv-python
+
     conda install pandas
-    conda install ipython (optional)
+
+    (optional)
+    
+    pycocotools: pip install cython, pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
+    conda install ipython 
 
 Run the following everytime starting the narvi cluster:
 gcc --version / g++ --version to check version
