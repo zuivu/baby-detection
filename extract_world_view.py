@@ -1,17 +1,14 @@
 import os
 import sys
-import cv2
-import time
-import json
-import random
 import time
 from datetime import datetime
+
+import cv2
 import numpy as np
 import pandas as pd
-import torch, torchvision
+import torch
 
 # Setup detectron2 logger
-import detectron2
 from detectron2.utils.logger import setup_logger
 setup_logger()
 
@@ -19,9 +16,9 @@ setup_logger()
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
-from detectron2.utils.visualizer import Visualizer
+#from detectron2.utils.visualizer import Visualizer
 from detectron2.utils.video_visualizer import VideoVisualizer
-from detectron2.data import MetadataCatalog, DatasetCatalog
+from detectron2.data import MetadataCatalog
 
 def get_gaze_thres(gaze_df, frame_count):
     # Get the lowest threshold
@@ -121,7 +118,7 @@ def visualize(frame, pred_instance, visualizer, show=False, rgb=False):
     out = out.get_image()   # RGB format
     if show: 
         cv2.imshow(out)
-    return out if rgb else out[:, :, ::-1]
+    return out if rgb else cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
 
 def get_gaze_in_frame(gaze_frame, width, height):
     """Calculate location of gaze in the frame.
@@ -217,7 +214,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
                                        color=gaze_color,
                                        thickness=-1)  
        
-                #print(f"Frame: {frame_ind}.{gaze_ind}, gaze at {gaze_pos}")
+                print(f"Frame: {frame_ind}.{gaze_ind}, gaze at {gaze_pos}")
                 #print("Segmentation: Looking to the baby?", in_segmentation)
                 #print("Bounding box: Looking to the baby?", in_box)
                 #print()
@@ -258,5 +255,7 @@ srun \
 >     --cpus-per-task 10 \
 >     --time 00:30:00 \
 >     python extract_world_view.py 003
+
+OR sbatch run.sh
 """
 # EOF
