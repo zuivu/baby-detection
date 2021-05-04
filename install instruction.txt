@@ -3,27 +3,23 @@ Use for narvi cluster (https://tuni-itc.github.io/wiki/Technical-Notes/tuni-narv
 Setup Anaconda environment for the system use following:
     conda create --name <env_name>
     conda activate <env_name>
+    conda install -c anaconda cudatoolkit
     conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
     
-    Run the following everytime starting the narvi cluster:
+    # Builiding detectron2 from source
+    Check and load GCC with the correct version:
     gcc --version / g++ --version to check version
     module spider GCC (to check available GCC versions) 
-    module load GCC/8.3.0 (load any GCC version satisfying requirement https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements)
-    
+    module load GCC/8.3.0 (or load any GCC version satisfying requirement https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements)
+    Build detectron2
+
     python -m pip install 'git+https://github.com/facebookresearch/detectron2.git' (https://detectron2.readthedocs.io/en/latest/tutorials/install.html#build-detectron2-from-source)
-    
-    needed or not : pip install git+https://github.com/facebookresearch/fvcore
-
-    conda install -c conda-forge opencv OR pip install opencv-python
-
+    pip install opencv-python
     conda install pandas
 
     (optional)
-    
-    pycocotools: pip install cython, pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
     conda install ipython 
+    pip install git+https://github.com/facebookresearch/fvcore
+    pycocotools: pip install cython, pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
 
-Run the following everytime starting the narvi cluster:
-gcc --version / g++ --version to check version
-module spider GCC (to check available GCC versions) 
-module load GCC/... (load any GCC version satisfying requirement https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements)
+

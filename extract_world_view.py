@@ -77,9 +77,9 @@ def get_config(config_file):
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.6  # set threshold for this model, faster inference
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(config_file)
     if not torch.cuda.is_available():
-        print("CUDA is not available!")
+        print("CUDA is not available", end='\n\n')
         cfg.MODEL.DEVICE = "cpu"
-
+    print(f"Run on CUDA: {torch.cuda.get_device_name(0)}", end='\n\n')
     return DefaultPredictor(cfg), VideoVisualizer(MetadataCatalog.get(cfg.DATASETS.TRAIN[0]))
 
 def detect_person(im, predictor):
@@ -243,19 +243,4 @@ if __name__ == "__main__":
     predictor, visualizer = get_config("COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
     dir = sys.argv[-1]
     baby_detection(dir, predictor, visualizer)
-
-"""
-srun \
->     --pty \
->     --job-name pepe_run \
->     --partition gpu \
->     --gres gpu:1 \
->     --mem-per-cpu 1G \
->     --ntasks 1 \
->     --cpus-per-task 10 \
->     --time 00:30:00 \
->     python extract_world_view.py 003
-
-OR sbatch run.sh
-"""
 # EOF
