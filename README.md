@@ -40,7 +40,7 @@ srun \
 --time 01:30:00 \
 python extract_world_view.py <recording_dir>
 ```  
-- Option 2: Before running the command, remember to change the email address  
+- Option 2: Before running the command, remember to change the email address, name of virtual environment, and recording directory  
 ```
 sbatch run.sh
 ```
