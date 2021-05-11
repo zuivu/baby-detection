@@ -2,7 +2,7 @@
 Implement baby detection on video recorded from [Pupil glasses](https://pupil-labs.com/products/core/) ([documentations](https://docs.pupil-labs.com/core/)) using [Detectron2](https://github.com/facebookresearch/detectron2)
 
 ## 1. Setup the system
-### 1.1 Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and create a virtual environment:
+### 1.1 Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and create a virtual environment
 ```
 conda create --name <env_name>
 conda activate <env_name>
