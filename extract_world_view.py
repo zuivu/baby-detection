@@ -45,8 +45,6 @@ def check_gaze_in_detection(gaze_pos, mask, box, frame):
 
     # Clipping values if gaze is outside the world view
     gaze_x, gaze_y = np.clip(gaze_pos, 0, (mask.shape[1] - 1, mask.shape[0] - 1))
-    if (gaze_x, gaze_y) != gaze_pos:
-        print("Clipped", gaze_x, gaze_y, gaze_pos)
 
     # 1. Based on segmentation 
     in_segment = mask[gaze_y, gaze_x]
@@ -55,8 +53,6 @@ def check_gaze_in_detection(gaze_pos, mask, box, frame):
     (start_x, start_y), (end_x, end_y) = np.floor(box[:2]), np.ceil(box[2:])
     in_box = (start_x <= gaze_x <= end_x) and (start_y <= gaze_y <= end_y)
 
-    if (not in_box) and (in_segment):
-        print(frame, gaze_x, gaze_y, box, mask[(gaze_y-5):(gaze_y+5), (gaze_x-5):(gaze_x+5)])
     return in_segment, in_box,\
            gaze_color["gaze_in_detection"] if in_box else gaze_color["gaze_not_in_detection"]
            
@@ -154,7 +150,6 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
         sys.exit(f"Should use threshold smaller than or equal to {min_thres} to avoid losing frames") 
     gaze_df = raw_gaze_df.loc[raw_gaze_df['confidence'] > gaze_thres].copy()
     discarded = 1 - len(gaze_df)/len(raw_gaze_df)
-    print(len(gaze_df), "left to use")
     print(f"{discarded*100:.2f}% of gaze points is discarded due to low confidence (<{gaze_thres})")
     
     # Prepare output video
@@ -175,8 +170,6 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
         if retval:
             # Get all gazes data in the frame
             gaze_datum = gaze_df.loc[gaze_df['world_index'] == frame_ind]
-            if(len(gaze_datum) == 0): 
-                print("Missing frame", frame_ind)
             num_gaze = len(gaze_datum)
 
             # Initialize key components
@@ -213,8 +206,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
                                        radius=4, 
                                        color=gaze_color,
                                        thickness=-1)  
-       
-                print(f"Frame: {frame_ind}.{gaze_ind}, gaze at {gaze_pos}")
+                
                 #print("Segmentation: Looking to the baby?", in_segmentation)
                 #print("Bounding box: Looking to the baby?", in_box)
                 #print()
@@ -243,4 +235,5 @@ if __name__ == "__main__":
     predictor, visualizer = get_config("COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
     dir = sys.argv[-1]
     baby_detection(dir, predictor, visualizer)
+    
 # EOF
