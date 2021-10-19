@@ -175,6 +175,9 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     # if there's a baby, then output image with gaze point, segmentation, (bounding box if possible)
     # Write to the table whether that gaze in the box? in the segmentation?
     
+    dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+    output_dir = os.makedirs(os.path.join(recording_dir, 'output', dt_string), exist_ok=True)
+
     # Get gaze data
     gaze_data_dir = os.path.join(recording_dir, 'exports', os.listdir(os.path.join(recording_dir, 'exports'))[0])
     raw_gaze_df = pd.read_csv(os.path.join(gaze_data_dir, 'gaze_positions.csv'), usecols=["world_index", "confidence", "norm_pos_x", "norm_pos_y"])
@@ -198,8 +201,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     print(f"{discarded*100:.2f}% of gaze points is discarded due to low confidence (<{gaze_thres})")
     
     # Prepare output video
-    dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")   # Using current date and time for unique file name
-    video_out = cv2.VideoWriter(filename=os.path.join(recording_dir, f"world_view_with_detection_{dt_string}.avi"), 
+    video_out = cv2.VideoWriter(filename=os.path.join(output_dir, f"world_view_with_detection_{dt_string}.avi"), 
                                 apiPreference=cv2.CAP_ANY,
                                 fourcc=cv2.VideoWriter_fourcc(*"XVID"), 
                                 fps=frame_rate, 
@@ -274,7 +276,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     gaze_df["is_baby"] = detect_baby
     gaze_df["in_segmentation"] = gaze_in_segment
     gaze_df["in_bounding_box"] = gaze_in_box
-    gaze_df.to_csv(os.path.join(gaze_data_dir, f"gaze_positions_on_baby_{dt_string}.csv"))
+    gaze_df.to_csv(os.path.join(output_dir, f"gaze_positions_on_baby_{dt_string}.csv"))
 
 if __name__ == "__main__":
     predictor, visualizer = get_config("COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")

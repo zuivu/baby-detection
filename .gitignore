@@ -133,7 +133,7 @@ dmypy.json
 /logs
 
 # Data from local computer
-/003
+/data
 /output
 
 # bash file containing private info 
