@@ -21,50 +21,76 @@ from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2.data import MetadataCatalog
 
 def get_gaze_thres(gaze_df, frame_count):
-    # Get the lowest threshold
+    """Get the lowest threshold of confidence user can set so that there is at
+    least one gaze point in each frame
+    
+    :param gaze_df: dataframe containing gaze info
+    :param frame_count: number of video's frames
+
+    :return threshold: lowest threshold
+    :rtype: float
+    """
+
     threshold_list = gaze_df['confidence'].drop_duplicates().sort_values()
-    for thres in threshold_list:
-        good_gaze_df = gaze_df.loc[gaze_df['confidence'] > thres] 
-        if good_gaze_df['world_index'].nunique() < frame_count:    # if threshold clear any row out of database
-            return thres
+    for threshold in threshold_list:
+        good_gaze_df = gaze_df.loc[gaze_df['confidence'] > threshold] 
+        if good_gaze_df['world_index'].nunique() < frame_count:
+            return threshold
 
 def check_gaze_in_detection(gaze_pos, mask, box, frame):
-    """Check if gaze point (calculated) is within segmentation and bounding box or not and
-    assign gaze's color in each case
+    """Check if gaze point (calculated) is within segmentation and bounding box
+    or not and assign gaze's color in each case (green - face is detected and 
+    gaze is in face's bounding box, red - face is detected but gaze is not in 
+    face's box, yellow - face is not detected)
 
+    :param gaze_pos: coordinate of gaze
+    :param mask: bitmask for the detected baby, same shape with video frame 
+    :param box: coordinates of upper left and bottom right corners of the box
+    :param frame: video frame
+
+    :return in_segment: whether gaze is in segmentation or not
+    :rtype: boolean
+    :return in_box: whether gaze is in bounding box or not
+    :rtype: boolean
+    :return gaze_color: RGB value for the gaze
+    :rtype: tuple
     """
     
-    gaze_color = {
-        "gaze_in_detection" : (0, 255, 0),       # Green in BGR
-        "gaze_not_in_detection" : (0, 0, 255),   # Red in BGR
-        "not_detected" : (0, 255, 255)          # Yellow in BGR
+    gaze_color_dict = {
+        "gaze_in_detection" : (0, 255, 0),
+        "gaze_not_in_detection" : (0, 0, 255),
+        "not_detected" : (0, 255, 255)
     }
 
     if (mask is None) and (box is None):
-        return np.nan, np.nan, gaze_color["not_detected"]
+        return np.nan, np.nan, gaze_color_dict["not_detected"]
 
     # Clipping values if gaze is outside the world view
     gaze_x, gaze_y = np.clip(gaze_pos, 0, (mask.shape[1] - 1, mask.shape[0] - 1))
 
-    # 1. Based on segmentation 
+    # In on segmentation?
     in_segment = mask[gaze_y, gaze_x]
 
-    # 2. Based on bounding box
+    # In bounding box?
     (start_x, start_y), (end_x, end_y) = np.floor(box[:2]), np.ceil(box[2:])
     in_box = (start_x <= gaze_x <= end_x) and (start_y <= gaze_y <= end_y)
 
-    return in_segment, in_box,\
-           gaze_color["gaze_in_detection"] if in_box else gaze_color["gaze_not_in_detection"]
-           
+    # Assign color to gaze
+    gaze_color = gaze_color_dict["gaze_in_detection"] if in_box else gaze_color_dict["gaze_not_in_detection"]
+
+    return in_segment, in_box, gaze_color
+    
 def get_config(config_file):
     """Get a predictor and video visualizer given the configuration file
 
     :param config_file: Configuration file
     :param config_file: string
 
-    :return predictor: End-to-end predictor object with the given config that runs on single device for a single input image
+    :return predictor: End-to-end predictor object with the given config that
+    runs on single device for a single input image
     :rtype: detectron2.engine.defaults.DefaultPredictor
-    :return visualizer: Visualizer object that draws data about detection, segmentation on video's frames 
+    :return visualizer: Visualizer object that draws data about detection,
+    segmentation on video's frames 
     :rtype: detectron2.utils.video_visualizer.VideoVisualizer
     """
 
@@ -86,7 +112,8 @@ def detect_person(im, predictor):
     :param predictor: DefaultPredictor object 
     :type predictor: predictor object
 
-    :return baby_instance: Instance object containing prediction's attributes of all person
+    :return baby_instance: Instance object containing prediction's attributes
+    of all person
     :rtype: detectron2.structures.Instances
     """
 
@@ -99,14 +126,16 @@ def detect_person(im, predictor):
 
 def visualize(frame, pred_instance, visualizer, show=False, rgb=False):
     """Visualize result from predictor
-    :param frame: video frame (BGR format since video is read using opencv) with shape (H, W, 3)
+
+    :param frame: BGR video frame with shape (H, W, 3)
     :type frame: numpy.ndarray
-    :param pred_instance: Instance object of a prediction result from predictor (i.e baby)
+    :param pred_instance: Instance object of a prediction result from predictor
     :type pred_instance: detectron2.structures.Instances
     :param visualizer: Visualizer objects
     :type visualizer: detectron2.utils.video_visualizer.VideoVisualizer
 
-    :return: Segmentation, bounding box of the baby, and the gaze point in the frame (BGR format as default)
+    :return: Segmentation, bounding box of the baby, and the gaze point in the
+    frame (BGR format as default)
     :rtype: numpy.ndarray
     """
     
@@ -116,16 +145,32 @@ def visualize(frame, pred_instance, visualizer, show=False, rgb=False):
         cv2.imshow(out)
     return out if rgb else cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
 
-def get_gaze_in_frame(gaze_frame, width, height):
-    """Calculate location of gaze in the frame.
+def get_gaze_in_frame(gaze_series, width, height):
+    """Calculate location of gaze corresponding to the video frame coordinate
 
+    :param gaze_series: all gazes in the video frame
+    :param width: width of the video frame
+    :param height: height of the video frame
+
+    :return x_img_coor: x coordinate of the gaze
+    :rtype: int
+    :return y_img_coor: y coordinate of the gaze
+    :rtype: int
     """
 
-    x_norm_coor, y_norm_coor = gaze_frame['norm_pos_x'].to_numpy(), gaze_frame['norm_pos_y'].to_numpy()
+    x_norm_coor, y_norm_coor = gaze_series['norm_pos_x'].to_numpy(), gaze_series['norm_pos_y'].to_numpy()
     x_img_coor, y_img_coor = (x_norm_coor*width).astype(int), ((1-y_norm_coor)*height).astype(int)
     return x_img_coor, y_img_coor
 
 def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
+    """Find baby in the video and check if gaze is at the baby or not
+
+    :param recording_dir: directory of gaze
+    :param predictor: predictor used to find baby
+    :param visualizer: VideoVisualizer object
+    :param gaze_thres: lowest confidence level of each gaze set by user
+    """
+
     # run predictor on each image, if no baby is found, then output image with gaze point only
     # if there's a baby, then output image with gaze point, segmentation, (bounding box if possible)
     # Write to the table whether that gaze in the box? in the segmentation?
