@@ -26,8 +26,8 @@ pip install opencv-python
 #### 1.2.2 Build detectron2
 `python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'`
 
-## 2. Run detectron2
-- Option 1:  
+## 2. Run the programme
+- Option 1: Run the following command in the terminal
 ```
 srun \
 --pty \
@@ -40,7 +40,29 @@ srun \
 --time 01:30:00 \
 python extract_world_view.py <recording_dir>
 ```  
-- Option 2: Before running the command, remember to change the email address, name of virtual environment, and recording directory  
+
+- Option 2: Create a bash file `run.sh` using the following template:
+```
+#!/usr/bin/env bash
+
+#SBATCH -J "baby-detection"
+#SBATCH -o logs/logs_%A.txt
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=1G
+#SBATCh --cpus-per-task=10
+#SBATCH --mail-user=<your_email_address>
+#SBATCH --mail-type=ALL
+#SBATCH --time=03:00:00
+
+export PYTHONPATH=$PYTHONPATH:.
+
+module load CUDA
+source activate <env_name>
+python extract_world_view.py <recording_dir>
+```
+and run the following command in the terminal:
 ```
 sbatch run.sh
 ```
