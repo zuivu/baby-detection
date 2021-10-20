@@ -176,7 +176,8 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     # Write to the table whether that gaze in the box? in the segmentation?
     
     dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    output_dir = os.makedirs(os.path.join(recording_dir, 'output', dt_string), exist_ok=True)
+    output_dir = os.path.join(recording_dir, 'output', dt_string)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Get gaze data
     gaze_data_dir = os.path.join(recording_dir, 'exports', os.listdir(os.path.join(recording_dir, 'exports'))[0])
