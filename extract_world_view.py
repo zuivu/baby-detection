@@ -176,8 +176,9 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     # Write to the table whether that gaze in the box? in the segmentation?
     
     dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    output_dir = os.makedirs(os.path.join(recording_dir, 'output', dt_string), exist_ok=True)
-
+    output_dir = os.path.join(recording_dir, 'output', dt_string)
+    os.makedirs(output_dir, exist_ok=True)
+    
     # Get gaze data
     gaze_data_dir = os.path.join(recording_dir, 'exports', os.listdir(os.path.join(recording_dir, 'exports'))[0])
     raw_gaze_df = pd.read_csv(os.path.join(gaze_data_dir, 'gaze_positions.csv'), usecols=["world_index", "confidence", "norm_pos_x", "norm_pos_y"])
@@ -208,7 +209,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
                                 frameSize=(width, height))
     
     # Start processing
-    start = time.time()
+    starttime_video = time.time()
     detect_baby = []
     gaze_in_segment = []
     gaze_in_box = []
@@ -257,20 +258,22 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
                 #print("Segmentation: Looking to the baby?", in_segmentation)
                 #print("Bounding box: Looking to the baby?", in_box)
                 #print()
-            
+
+            if frame_ind % 10 == 0:
+                print(f"Processing frame {frame_ind}/{frame_count} done")
+
             # Write to output video
             video_out.write(vis_frame)
             #time.sleep(0.01) # Add some delay to see processing frames
             #cv2.imshow(window_name='Recording', 
             #            image=vis_frame)
             
-            
             if cv2.waitKey(delay=1) & 0xFF == ord('q'):
                 sys.exit()
     
     video_cap.release()
     video_out.release() 
-    print("Total run time", time.time() - start)
+    print("Total run time", round(time.time() - starttime_video, 2))
     
     # Write result to csv file 
     gaze_df["is_baby"] = detect_baby
