@@ -11,15 +11,15 @@ if __name__ == "__main__":
     detected_baby_df = df[df['is_baby'] == True]
     total_detected_frames = detected_baby_df['world_index'].nunique()
     total_unique_frames = df['world_index'].nunique()
-    print(f"Total frames having baby {total_detected_frames}, i.e {total_detected_frames/total_unique_frames*100:.2f}%")
+    print(f"Total frames having baby {total_detected_frames}, i.e {total_detected_frames/total_unique_frames*100:.2f}% of total frames")
 
     gaze_in_box_df = detected_baby_df[detected_baby_df['in_bounding_box']==True]
     gaze_in_box = gaze_in_box_df['world_index'].nunique()
-    print(f"Loooking at baby (in bounding box): {gaze_in_box}, i.e {gaze_in_box/total_detected_frames*100:.2f}%")
+    print(f"Loooking at baby (in bounding box): {gaze_in_box}, i.e {gaze_in_box/total_detected_frames*100:.2f}% of frames having baby")
         
     gaze_in_seg_df = detected_baby_df[detected_baby_df['in_segmentation']==True]
     gaze_in_seg = gaze_in_seg_df['world_index'].nunique()
-    print(f"Loooking at baby (in segmentation): {gaze_in_seg}, i.e {gaze_in_seg/total_detected_frames*100:.2f}%")
+    print(f"Loooking at baby (in segmentation): {gaze_in_seg}, i.e {gaze_in_seg/total_detected_frames*100:.2f}% of frames having baby")
 
     # Plot
     df = df.drop_duplicates("world_index")
@@ -33,7 +33,6 @@ if __name__ == "__main__":
     plt.scatter(no_baby["world_index"], no_baby['is_baby'], marker='.', label='no baby')
     plt.scatter(gaze_in_box_df['world_index'], gaze_in_box_df['in_bounding_box'], c='r', marker=2, alpha=0.4, label='gaze in box')
     plt.scatter(gaze_in_seg_df['world_index'], gaze_in_seg_df['in_segmentation'], c='g', marker=3, alpha=0.5, label='gaze segmentation')
-    plt.xticks(range(0, 1171, 90))
     plt.yticks([0, 1], labels=['NO BABY', 'YES BABY'])
     plt.legend(loc='best')
     plt.grid()
