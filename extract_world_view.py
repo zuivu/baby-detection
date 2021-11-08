@@ -162,7 +162,7 @@ def get_gaze_in_frame(gaze_series, width, height):
     x_img_coor, y_img_coor = (x_norm_coor*width).astype(int), ((1-y_norm_coor)*height).astype(int)
     return x_img_coor, y_img_coor
 
-def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
+def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.0):
     """Find baby in the video and check if gaze is at the baby or not
 
     :param recording_dir: directory of gaze
@@ -194,9 +194,8 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
 
     # Filter low confidence gaze base on user's choice of gaze_thres
     min_thres = get_gaze_thres(raw_gaze_df, frame_count)
-    if gaze_thres >= min_thres:
-        min_thres = min_thres // 0.01 * 0.01    # Truncate number to 2 decimal places
-        sys.exit(f"Should use threshold smaller than or equal to {min_thres} to avoid losing frames") 
+    if gaze_thres > min_thres:
+        sys.exit(f"Should use threshold smaller than or equal to {min_thres:.2f} to avoid losing frames") 
     gaze_df = raw_gaze_df.loc[raw_gaze_df['confidence'] > gaze_thres].copy()
     discarded = 1 - len(gaze_df)/len(raw_gaze_df)
     print(f"{discarded*100:.2f}% of gaze points is discarded due to low confidence (<{gaze_thres})")
@@ -273,7 +272,7 @@ def baby_detection(recording_dir, predictor, visualizer, gaze_thres=0.85):
     
     video_cap.release()
     video_out.release() 
-    print("Total run time", round(time.time() - starttime_video, 2))
+    print(f"Total run time {round(time.time() - starttime_video, 2)}s")
     
     # Write result to csv file 
     gaze_df["is_baby"] = detect_baby
