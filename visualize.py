@@ -1,21 +1,23 @@
 import cv2
-from detectron2.utils.visualizer import Visualizer, ColorMode
+from detectron2.utils.visualizer import Visualizer
 from gaze import Gaze
 
-def visualize(frame, segmentation, pred_score: float, gaze_list, viz_metadata, show=False):
-    """Visualize result from predictor
 
-    :param frame: BGR video frame with shape (H, W, 3)
-    :type frame: numpy.ndarray
-    :param pred_instance: Instance object of a prediction result from predictor
-    :type pred_instance: detectron2.structures.Instances
-    :param visualizer: Visualizer objects
-    :type visualizer: detectron2.utils.video_visualizer.VideoVisualizer
+def visualize(frame, segmentation, pred_score, gaze_list, show=False):
+    """Visualizes result on video frame.
 
-    :return: Segmentation, bounding box of the baby, and the gaze point in the
-    frame in BGR ordering.
-    :rtype: numpy.ndarray
+    Args:
+        frame (numpy.ndarray): Video frame in BGR order.
+        segmentation (numpy.ndarray): An array of shape (H, W), a boolean mask of the detected person.
+            Or an array with no element if no person is detected.
+        pred_score (float): Confidence score of the person prediction.
+        gaze_list (list of tuple): List of gaze coordinates on the frame and its status (in detection or not).
+        show (bool): True to show the result visualization frame. False otherwises.        
+
+    Return:
+        numpy.ndarray: Video frame in BGR order with segmentation, and gaze points drawn on. 
     """
+
     gaze_bgr = {
         Gaze.IN_DETECTION: (0, 255, 0),         # green
         Gaze.NOT_IN_DETECTION: (0, 0, 255),     # red
@@ -23,14 +25,12 @@ def visualize(frame, segmentation, pred_score: float, gaze_list, viz_metadata, s
     }
 
     if pred_score:
-        out = Visualizer(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 
-                        metadata=viz_metadata,
-                        instance_mode=ColorMode.SEGMENTATION
-        ).draw_binary_mask(segmentation, 
-                        color="blue",
-                        edge_color="mediumblue",
-                        text=f"baby {round(pred_score*100, 1)}%",
-                        alpha=0.4
+        out = Visualizer(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)).draw_binary_mask(
+            segmentation, 
+            color="blue",
+            edge_color="mediumblue",
+            text=f"baby {round(pred_score*100, 1)}%",
+            alpha=0.4
         ).get_image()
 
         frame = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)

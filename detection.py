@@ -1,18 +1,24 @@
-def detect_person(im, predictor, pred_threshold=0.93):
-    """Find persons in the image
+def detect_person(frame, predictor, pred_threshold=0.93):
+    """Finds person with high confidence prediction score (depend on the ``pred_threshold``)
+    in the video frame.
+    
+    Args:
+        frame (numpy.ndarray): Video frame in BGR order.
+        predictor (DefaultPredictor): a simple end-to-end pre-trained predictor running on
+            single device for a single input image.
+        pred_threshold: Lowest accepted prediction score for the detected person instance.
+            Defaults to 0.93.
 
-    :param im: Image in the format of BGR with shape (H, W, 3)
-    :type im: numpy.ndarray
-    :param predictor: DefaultPredictor object 
-    :type predictor: predictor object
+    Return:
+        numpy.ndarray: An array of shape (H, W), a boolean mask of the detected person.
+        numpy.ndarray: An array of shape (4,), upper left and bottom right corner of the bounding box,
+            in order of [start_x, start_y, end_x, end_y].
+        float: Confidence score of the person prediction.
 
-    :return baby_instance: Instance object containing prediction's attributes
-    of all person
-    :rtype: detectron2.structures.Instances
+        Note: If no person is detected, the first 2 return values are arrays with no element.
     """
 
-    # look at the outputs. See https://detectron2.readthedocs.io/tutorials/models.html#model-output-format for specification
-    outputs = predictor(im)
+    outputs = predictor(frame)
     output_instances = outputs["instances"]
     person_id = predictor.metadata.thing_classes.index('person')
     person_instances = output_instances[output_instances.pred_classes == person_id]

@@ -12,25 +12,18 @@ class Gaze(Enum):
     NO_DETECTION = "person_not_detected"
 
 
-def get_gaze_thres(gaze_df, total_frame):
-    """Get the lowest threshold of confidence user can set so that there is at
-    least one gaze point in each frame
-    
-    :param gaze_df: dataframe containing gaze info
-    :param total_frame: number of video's frames
-
-    :return threshold: lowest threshold
-    :rtype: float
-    """
-
-    threshold_list = gaze_df['confidence'].drop_duplicates().sort_values()
-    for threshold in threshold_list:
-        good_gaze_df = gaze_df.loc[gaze_df['confidence'] > threshold] 
-        if good_gaze_df['world_index'].nunique() < total_frame:
-            return threshold
-
-
 def filling_missing_gaze(gaze_df, total_frame):
+    """Add rows of gaze empty data where world indices are missing from the current dataframe.
+    Rows added has NA values for all coordinate data and zero confidence for gaze.
+
+    Args:
+        gaze_df (pandas.Dataframe): Gaze dataframe with missing world indices.
+        total_frame (int): Number of video frames.
+
+    Return:
+        pandas.Dataframe: Dataframe with all of world indices.
+    """
+    
     missing_world_indices = list(set(range(total_frame)) - set(gaze_df["world_index"]))
     missing_gaze_df = pd.DataFrame(
         {
@@ -45,6 +38,19 @@ def filling_missing_gaze(gaze_df, total_frame):
 
 
 def get_gaze_data(recording_dir, gaze_thres, total_frame, frame_size):
+    """Gets fully processed gaze dataframe from the recording directory. 
+
+    Args:
+        recording_dir (str): Directory of exported recording from Pupil Player.
+        gaze_thres (float): Lowest accepted confidence level for gaze.
+        total_frame (int): Number of video frames.
+        frame_size (tuple of int): Width and height of the video frame.
+
+    Return:
+        pandas.Dataframe: Gaze dataframe without missing gaze data and gaze coordinates
+            corresponding to video frame. 
+    """
+    
     gaze_data_dir = os.path.join(recording_dir, 'exports', os.listdir(os.path.join(recording_dir, 'exports'))[0])
     raw_gaze_df = pd.read_csv(os.path.join(gaze_data_dir, 'gaze_positions.csv'), usecols=["world_index", "confidence", "norm_pos_x", "norm_pos_y"])
 
@@ -53,7 +59,7 @@ def get_gaze_data(recording_dir, gaze_thres, total_frame, frame_size):
         warn(f"Use threshold smaller than or equal to {min_thres:.2f} to have at least one gaze per frame.")
 
     # gaze_df = raw_gaze_df.loc[raw_gaze_df['confidence'] >= gaze_thres]
-    unused_gaze_pct = (1 - sum(raw_gaze_df['confidence'] >= gaze_thres) /len(raw_gaze_df)) * 100
+    unused_gaze_pct = (1 - sum(raw_gaze_df['confidence'] >= gaze_thres)/len(raw_gaze_df)) * 100
     print(f"{round(unused_gaze_pct)}% of gaze points will not be used due to low confidence (< {gaze_thres}).")
 
     def cal_gaze_in_frame(x_norm, y_norm):
@@ -75,12 +81,78 @@ def get_gaze_data(recording_dir, gaze_thres, total_frame, frame_size):
 
 
 def save_gaze_detection(gaze_df, detect_baby, gaze_in_segment, gaze_in_box, gaze_baby_dir):
-    #print(gaze_df, detect_baby, gaze_in_segment, gaze_in_box, gaze_baby_dir)
+    """Save gaze dataframe to disk.
+    
+    Args:
+        gaze_df (pandas.Dataframe): Gaze dataframe.
+        detect_baby (list of bool): Baby is detected or not on each video frame.  
+        gaze_in_segment (list of bool|NA): Gaze is in person segmentation or not (NA if no detected baby) on each video frame.
+        gaze_in_box (list of bool|NA): Gaze is in person bounding box or not (NA if no detected baby) on each video frame.
+        gaze_baby_dir (str): File directory where data is saved.  
+    """
+    
     gaze_df["is_baby"] = detect_baby
     gaze_df["in_segmentation"] = gaze_in_segment
     gaze_df["in_bounding_box"] = gaze_in_box
     gaze_df.to_csv(gaze_baby_dir)
 
+
+def check_gaze_in_detection(gaze_pos, mask, box):
+    """Check if gaze point is in segmentation, bounding box and assign a status for each gaze:
+    
+    1. Gaze in segmentation of detected person.
+    2. Gaze not segmentation of detected person.
+    3. No detected person.
+
+    Args:
+        gaze_pos (tuple of int): Coordinate of gaze in video frame.
+        mask (numpy.ndarray): An array of shape (H, W), a boolean mask of the detected person.
+        box (numpy.ndarray): An array of shape (4,), upper left and bottom right corner of the bounding box,
+            in order of [start_x, start_y, end_x, end_y].
+        
+        Note: If no person is detected, ``mask`` and ``box`` are arrays with no element.
+
+    Returns:
+        If no person is detected, np.nan for the first 2 return values. Otherwise,
+            1. bool: Whether gaze is in segmentation.
+            2. bool: Whether gaze is in bounding box.
+
+        3. enum 'Gaze': 1 of 3 gaze status defined in enum 'Gaze'.
+    """
+
+    if not (len(mask) or len(box)):
+        return np.nan, np.nan, Gaze.NO_DETECTION
+
+    if pd.isna(gaze_pos):
+        in_segment = in_box = False
+    else:
+        gaze_x, gaze_y = gaze_pos
+        in_segment = mask[gaze_y, gaze_x]
+
+        (start_x, start_y), (end_x, end_y) = np.floor(box[:2]), np.ceil(box[2:])
+        in_box = (start_x <= gaze_x <= end_x) and (start_y <= gaze_y <= end_y)
+
+    gaze_status = Gaze.IN_DETECTION if in_segment else Gaze.NOT_IN_DETECTION
+
+    return in_segment, in_box, gaze_status
+
+# Not in use anymore
+def get_gaze_thres(gaze_df, total_frame):
+    """Get the lowest threshold of confidence user can set so that there is at
+    least one gaze point in each frame
+    
+    :param gaze_df: dataframe containing gaze info
+    :param total_frame: number of video's frames
+
+    :return threshold: lowest threshold
+    :rtype: float
+    """
+
+    threshold_list = gaze_df['confidence'].drop_duplicates().sort_values()
+    for threshold in threshold_list:
+        good_gaze_df = gaze_df.loc[gaze_df['confidence'] > threshold] 
+        if good_gaze_df['world_index'].nunique() < total_frame:
+            return threshold
 
 def get_gaze_in_frame(gaze_series, width, height):
     """Calculate location of gaze corresponding to the video frame coordinate
@@ -99,40 +171,3 @@ def get_gaze_in_frame(gaze_series, width, height):
     x_img_coor, y_img_coor = (x_norm_coor*width).astype(int), ((1-y_norm_coor)*height).astype(int)
     
     return x_img_coor, y_img_coor
-
-
-def check_gaze_in_detection(gaze_pos, mask, box):
-    """Check if gaze point (calculated) is within segmentation and bounding box
-    or not and assign gaze's color in each case (green - face is detected and 
-    gaze is in face's bounding box, red - face is detected but gaze is not in 
-    face's box, yellow - face is not detected)
-
-    :param gaze_pos: coordinate of gaze
-    :param mask: bitmask for the detected baby, same shape with video frame 
-    :param box: coordinates of upper left and bottom right corners of the box
-
-    :return in_segment: whether gaze is in segmentation or not
-    :rtype: boolean
-    :return in_box: whether gaze is in bounding box or not
-    :rtype: boolean
-    :return gaze_color: RGB value for the gaze
-    :rtype: tuple
-    """
-
-    if not (len(mask) or len(box)):
-        return np.nan, np.nan, Gaze.NO_DETECTION
-
-    # gaze_x, gaze_y = np.clip(a=gaze_pos, a_min=0, a_max=(mask.shape[1] - 1, mask.shape[0] - 1))
-    
-    if pd.isna(gaze_pos):
-        in_segment = in_box = False
-    else:
-        gaze_x, gaze_y = gaze_pos
-        in_segment = mask[gaze_y, gaze_x]
-
-        (start_x, start_y), (end_x, end_y) = np.floor(box[:2]), np.ceil(box[2:])
-        in_box = (start_x <= gaze_x <= end_x) and (start_y <= gaze_y <= end_y)
-
-    gaze_status = Gaze.IN_DETECTION if in_segment else Gaze.NOT_IN_DETECTION
-
-    return in_segment, in_box, gaze_status

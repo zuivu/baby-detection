@@ -4,18 +4,18 @@ from datetime import datetime
 import cv2
 from tqdm import tqdm
 from utils import get_model
-from gaze import get_gaze_data, save_gaze_detection, check_gaze_in_detection
+from gaze import get_gaze_data, check_gaze_in_detection, save_gaze_detection
 from detection import detect_person
 from visualize import visualize
 
 
 def baby_detection(recording_dir, model_file, gaze_thres=0.8):
-    """Find baby in the video and check if gaze is at the baby or not.
+    """Create new video with visualization of detected baby and gazes.
 
-    :param recording_dir: directory of gaze
-    :param predictor: predictor used to find baby
-    :param visualizer: VideoVisualizer object
-    :param gaze_thres: lowest confidence level of each gaze set by user
+    Arg:
+        recording_dir (str): Directory of exported recording from Pupil Player.
+        config_file (str): Configuration file.
+        gaze_thres (float): Lowest  accepted confidence level for gaze.
     """
 
     # Get video and its metadata
@@ -26,7 +26,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
     width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_size = (width, height)
-    print("Frame rate:", frame_rate, "number of frames", frame_count, "width:", width, "height:", height)
+    print(f"Frame rate: {round(frame_rate,2)} fps, total frames: {frame_count}, width: {width}, height: {height}")
 
     # Prepare output
     dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -47,7 +47,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
     detect_baby = []
     gaze_in_segment = []
     gaze_in_box = []
-    predictor, viz_metadata = get_model(model_file)
+    predictor = get_model(model_file)
 
     for frame_ind in tqdm(iterable=range(frame_count), desc="Processing frame", total=frame_count,
                           unit="frame", mininterval=5, miniters=1, dynamic_ncols=True):
@@ -77,8 +77,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
             viz_frame = visualize(frame=frame,
                                   segmentation=segmentation,
                                   pred_score=pred_score,
-                                  gaze_list=zip(all_gaze_pos, all_gaze_status),
-                                  viz_metadata=viz_metadata)
+                                  gaze_list=zip(all_gaze_pos, all_gaze_status))
 
             video_out.write(viz_frame)
 
