@@ -1,4 +1,4 @@
-def detect_person(frame, predictor, pred_threshold=0.93):
+def detect_person(frame, predictor, pred_threshold):
     """Finds person with high confidence prediction score (depend on the ``pred_threshold``)
     in the video frame.
     
@@ -7,7 +7,6 @@ def detect_person(frame, predictor, pred_threshold=0.93):
         predictor (DefaultPredictor): a simple end-to-end pre-trained predictor running on
             single device for a single input image.
         pred_threshold: Lowest accepted prediction score for the detected person instance.
-            Defaults to 0.93.
 
     Return:
         numpy.ndarray: An array of shape (H, W), a boolean mask of the detected person.

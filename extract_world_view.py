@@ -9,13 +9,14 @@ from detection import detect_person
 from visualize import visualize
 
 
-def baby_detection(recording_dir, model_file, gaze_thres=0.8):
+def baby_detection(recording_dir, model_file, min_detection_score=0.93):
     """Create new video with visualization of detected baby and gazes.
 
     Arg:
         recording_dir (str): Directory of exported recording from Pupil Player.
         config_file (str): Configuration file.
-        gaze_thres (float): Lowest  accepted confidence level for gaze.
+        min_detection_score (float): Lowest accepted prediction score for the detected person instance.
+            Defaults to 0.93.
     """
 
     # Get video and its metadata
@@ -26,7 +27,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
     width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_size = (width, height)
-    print(f"Frame rate: {round(frame_rate,2)} fps, total frames: {frame_count}, width: {width}, height: {height}")
+    print(f"Frame rate: {round(frame_rate,2)} fps, total frames: {frame_count}, width: {width}, height: {height}.")
 
     # Prepare output
     dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -35,19 +36,18 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
     gaze_baby_dir = os.path.join(output_dir, f"gaze_positions_on_baby_{dt_string}.csv")
     vid_dir = os.path.join(output_dir, f"world_view_with_detection_{dt_string}.avi")
     
+    # Start processing
+    detect_baby = []
+    gaze_in_segment = []
+    gaze_in_box = []
+
+    predictor = get_model(model_file)
+    gaze_df = get_gaze_data(recording_dir, frame_count, frame_size)
     video_out = cv2.VideoWriter(filename=vid_dir,
                                 apiPreference=cv2.CAP_ANY,
                                 fourcc=cv2.VideoWriter_fourcc(*"XVID"),
                                 fps=frame_rate,
                                 frameSize=frame_size)
-
-    gaze_df = get_gaze_data(recording_dir, gaze_thres, frame_count, frame_size)
-
-    # Start processing
-    detect_baby = []
-    gaze_in_segment = []
-    gaze_in_box = []
-    predictor = get_model(model_file)
 
     for frame_ind in tqdm(iterable=range(frame_count), desc="Processing frame", total=frame_count,
                           unit="frame", mininterval=5, miniters=1, dynamic_ncols=True):
@@ -58,7 +58,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
             gaze_datum = gaze_df.loc[gaze_df['world_index'] == frame_ind]
 
             # Detectron algo 
-            segmentation, bounding_box, pred_score = detect_person(frame, predictor)
+            segmentation, bounding_box, pred_score = detect_person(frame, predictor, min_detection_score)
             num_gaze = len(gaze_datum)
             if pred_score:
                 detect_baby.extend([True]*num_gaze)
@@ -66,7 +66,7 @@ def baby_detection(recording_dir, model_file, gaze_thres=0.8):
                 detect_baby.extend([False]*num_gaze)
 
             # Check gaze in detection
-            all_gaze_pos = gaze_datum["world_coord"].to_list()     # get_gaze_in_frame(gaze_datum, width, height)
+            all_gaze_pos = gaze_datum["world_coord"].to_list()
             all_gaze_status = []
             for gaze_pos in all_gaze_pos:
                 in_segmentation, in_box, gaze_status = check_gaze_in_detection(gaze_pos, segmentation, bounding_box)
