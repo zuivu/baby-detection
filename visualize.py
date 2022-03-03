@@ -27,8 +27,8 @@ def visualize(frame, segmentation, pred_score, gaze_list, show=False):
     if pred_score:
         out = Visualizer(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)).draw_binary_mask(
             segmentation, 
-            color="blue",
-            edge_color="mediumblue",
+            color="cornflowerblue",  # "mediumblue"
+            edge_color="blue",
             text=f"baby {round(pred_score*100, 1)}%",
             alpha=0.4
         ).get_image()

@@ -21,9 +21,9 @@ def get_model(config_file):
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(config_file)
     
     if cuda.is_available():
-        print(f"Run on CUDA: {cuda.get_device_name(0)}", end='\n\n')
+        print(f"Run on CUDA: {cuda.get_device_name(0)}.", end='\n\n')
     else:
-        print("CUDA is not available", end='\n\n')
+        print("CUDA is not available.", end='\n\n')
         cfg.MODEL.DEVICE = "cpu"
 
     return DefaultPredictor(cfg)

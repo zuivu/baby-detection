@@ -37,14 +37,14 @@ def filling_missing_gaze(gaze_df, total_frame):
     return full_gaze_df
 
 
-def get_gaze_data(recording_dir, gaze_thres, total_frame, frame_size):
+def get_gaze_data(recording_dir, total_frame, frame_size, gaze_thres=0.8):
     """Gets fully processed gaze dataframe from the recording directory. 
 
     Args:
         recording_dir (str): Directory of exported recording from Pupil Player.
-        gaze_thres (float): Lowest accepted confidence level for gaze.
         total_frame (int): Number of video frames.
         frame_size (tuple of int): Width and height of the video frame.
+        gaze_thres (float): Lowest accepted confidence level for gaze. Defaults to 0.8
 
     Return:
         pandas.Dataframe: Gaze dataframe without missing gaze data and gaze coordinates
@@ -94,7 +94,7 @@ def save_gaze_detection(gaze_df, detect_baby, gaze_in_segment, gaze_in_box, gaze
     gaze_df["is_baby"] = detect_baby
     gaze_df["in_segmentation"] = gaze_in_segment
     gaze_df["in_bounding_box"] = gaze_in_box
-    gaze_df.to_csv(gaze_baby_dir)
+    gaze_df.to_csv(gaze_baby_dir, index=False)
 
 
 def check_gaze_in_detection(gaze_pos, mask, box):
