@@ -62,19 +62,16 @@ def get_gaze_data(recording_dir, total_frame, frame_size, gaze_thres=0.8):
     unused_gaze_pct = (1 - sum(raw_gaze_df['confidence'] >= gaze_thres)/len(raw_gaze_df)) * 100
     print(f"{round(unused_gaze_pct)}% of gaze points will not be used due to low confidence (< {gaze_thres}).")
 
-    def cal_gaze_in_frame(x_norm, y_norm):
+    def cal_gaze_in_frame(gaze_data):
         width, height = frame_size
+        x_norm, y_norm = gaze_data[["norm_pos_x", "norm_pos_y"]]
         world_x, world_y = np.clip(a=[round(x_norm * width), round((1-y_norm) * height)],
                                    a_min=[0, 0], 
                                    a_max=[width - 1, height - 1]
                                   )
         return (world_x, world_y)
 
-    raw_gaze_df["world_coord"] = raw_gaze_df.apply(
-        lambda row: cal_gaze_in_frame(row["norm_pos_x"], row["norm_pos_x"]),
-        axis=1
-    )
-
+    raw_gaze_df["world_coord"] = raw_gaze_df.apply(lambda row: cal_gaze_in_frame(row), axis=1)
     final_gaze_df = filling_missing_gaze(raw_gaze_df, total_frame)
 
     return final_gaze_df
