@@ -38,7 +38,7 @@ srun \
 --ntasks 1 \
 --cpus-per-task 10 \
 --time 01:30:00 \
-python extract_world_view.py <recording_dir>
+python baby_detection.py <recording_dir>
 ```  
 
 - Option 2: Create a bash file `run.sh` using the following template:
@@ -60,7 +60,7 @@ export PYTHONPATH=$PYTHONPATH:.
 
 module load CUDA
 source activate <env_name>
-python extract_world_view.py <recording_dir>
+python baby_detection.py <recording_dir>
 ```
 and run the following command in the terminal:
 ```

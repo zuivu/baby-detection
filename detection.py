@@ -1,4 +1,4 @@
-def detect_person(frame, predictor, pred_threshold):
+def detect_person_instance(frame, predictor, pred_threshold):
     """Finds person with high confidence prediction score (depend on the ``pred_threshold``)
     in the video frame.
     
