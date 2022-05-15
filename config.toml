@@ -1,0 +1,20 @@
+[model]
+all_model_config_paths = [
+    "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml",   # most accurate 39.5 AP, 0.103 s
+    "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml",         # accurate and fast 38.6 AP, 0.056 s
+    "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml",          # fastest 0.043 AP, 37.2 s
+    "new_baselines/mask_rcnn_regnetx_4gf_dds_FPN_400ep_LSJ.py",      # accurate and fast 43.5 AP, 0.071 s
+    "new_baselines/mask_rcnn_R_101_FPN_400ep_LSJ.py",                # most accurate 43.7 AP, 0.073 s
+]
+model_config_path = "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml"
+
+
+[data_directory]
+experiment = "../public_data/2022-02-26-23-45-57"
+mother_infant_1 = "../GazeMoCap/100209/100209_eye"
+mother_infant_2 = "../GazeMoCap/150210/150210_Eye"
+
+
+[software_settings]
+seed_number = 6
+min_detection_score = 0.8
