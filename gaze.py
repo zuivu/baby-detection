@@ -12,7 +12,64 @@ class Gaze(Enum):
     NO_DETECTION = "person_not_detected"
 
 
-def filling_missing_gaze(gaze_df, total_frame):
+def get_gaze_thres(gaze_df: pd.DataFrame, total_frame: int):
+    """Get the lowest threshold of confidence user can set so that there is at
+    least one gaze point in each frame
+
+    :param gaze_df: dataframe containing gaze info
+    :param total_frame: number of video's frames
+
+    :return threshold: lowest threshold
+    :rtype: float
+    """
+
+    threshold_list = gaze_df["confidence"].drop_duplicates().sort_values()
+    for threshold in threshold_list:
+        good_gaze_df = gaze_df.loc[gaze_df["confidence"] > threshold]
+        if good_gaze_df.loc[:, "world_index"].nunique() < total_frame:
+            return threshold
+
+
+def clipping_gaze(denormalized_gazes: pd.Series, frame_dimension: int):
+    """Returns gazes in denormalized coordinate (float numbers) to the indicies on the video frame.
+
+    Args:
+        denormalized_gazes (Series): Gazes in denormalized coordinate.
+        frame_dimension (int): Dimension of the frame to clip the coordinates to avoid index out of
+            range.
+
+    Return:
+        list: List of gaze coordinates that can be used as indicies on the video frame.
+    """
+
+    return (
+        np.clip(a=np.rint((denormalized_gazes - 1).to_numpy()), a_min=0, a_max=frame_dimension - 1)
+        .astype(int)
+        .tolist()
+    )
+
+
+def map_gaze_to_frame_coord(gaze_data: pd.DataFrame, frame_size: tuple):
+    """Converts gazes in normalized coordinate to video coordinate.
+
+    Args:
+        gaze_data (Dataframe): Gaze dataframe.
+        frame_size (tuple of int): Width and height of the video frame.
+
+    Return:
+        np.ndarray: Array of tuple of gaze coordinates.
+    """
+
+    width, height = frame_size
+    x_denormalized = gaze_data.loc[:, "norm_pos_x"] * width
+    y_denormalized = (1 - gaze_data.loc[:, "norm_pos_y"]) * height
+    x_world_coor = clipping_gaze(x_denormalized, width)
+    y_world_coor = clipping_gaze(y_denormalized, height)
+
+    return np.array(zip(x_world_coor, y_world_coor))
+
+
+def filling_missing_gaze(gaze_df: pd.DataFrame, frame_duration: int):
     """Add rows of gaze empty data where world indices are missing from the current dataframe.
     Rows added has NA values for all coordinate data and zero confidence for gaze.
 
@@ -23,12 +80,12 @@ def filling_missing_gaze(gaze_df, total_frame):
     Return:
         pandas.Dataframe: Dataframe with all of world indices.
     """
-
-    missing_world_indices = list(set(range(total_frame)) - set(gaze_df["world_index"]))
+    all_frames_range = range(frame_duration[0], frame_duration[1])
+    missing_frame_indices = list(set(all_frames_range) - set(gaze_df["world_index"]))
     missing_gaze_df = pd.DataFrame(
         {
-            "world_index": missing_world_indices,
-            "confidence": [0] * len(missing_world_indices),
+            "world_index": missing_frame_indices,
+            "confidence": [0] * len(missing_frame_indices),
         }
     )
     full_gaze_df = pd.concat([missing_gaze_df, gaze_df], ignore_index=True)
@@ -37,12 +94,14 @@ def filling_missing_gaze(gaze_df, total_frame):
     return full_gaze_df
 
 
-def get_gaze_data(recording_dir, total_frame, frame_size, gaze_thres=0.8):
+def get_gaze_data(
+    recording_dir: str, frame_duration: int, frame_size: int, gaze_thres: float = 0.8
+):
     """Gets fully processed gaze dataframe from the recording directory.
 
     Args:
         recording_dir (str): Directory of exported recording from Pupil Player.
-        total_frame (int): Number of video frames.
+        frame_duration (tuple of int): Start and end frame of the experiment.
         frame_size (tuple of int): Width and height of the video frame.
         gaze_thres (float): Lowest accepted confidence level for gaze. Defaults to 0.8
 
@@ -58,40 +117,37 @@ def get_gaze_data(recording_dir, total_frame, frame_size, gaze_thres=0.8):
         os.path.join(gaze_data_dir, "gaze_positions.csv"),
         usecols=["world_index", "confidence", "norm_pos_x", "norm_pos_y"],
     )
-    # only get gaze at frames corresponding to video frames
-    raw_gaze_df = raw_gaze_df[raw_gaze_df["world_index"] < total_frame]
 
-    min_thres = get_gaze_thres(raw_gaze_df, total_frame)
+    frame_start, frame_end = frame_duration
+    raw_gaze_df = raw_gaze_df.loc[
+        (frame_start <= raw_gaze_df["world_index"]) & (raw_gaze_df["world_index"] < frame_end)
+    ]
+
+    min_thres = get_gaze_thres(raw_gaze_df, total_frame=frame_end - frame_start)
     if gaze_thres > min_thres:
         warn(
-            f"Use threshold smaller than or equal to {min_thres:.2f} to have at least one gaze "
+            f"Use threshold smaller than or equal to {min_thres:.1f} to retain at least one gaze "
             + "per frame."
         )
 
-    # gaze_df = raw_gaze_df.loc[raw_gaze_df['confidence'] >= gaze_thres]
-    unused_gaze_pct = (1 - sum(raw_gaze_df["confidence"] >= gaze_thres) / len(raw_gaze_df)) * 100
-    print(
-        f"{round(unused_gaze_pct)}% of gaze points will not be used due to low confidence "
-        + f"(< {gaze_thres})."
-    )
+    good_gaze_df = raw_gaze_df.loc[raw_gaze_df["confidence"] >= gaze_thres]
+    unused_gaze_pct = round((1 - len(good_gaze_df) / len(raw_gaze_df)) * 100)
+    if unused_gaze_pct:
+        print(f"{unused_gaze_pct}% of gazes are removed due to low confidence (< {gaze_thres}).")
 
-    def cal_gaze_in_frame(gaze_data):
-        width, height = frame_size
-        x_norm, y_norm = gaze_data[["norm_pos_x", "norm_pos_y"]]
-        world_x, world_y = np.clip(
-            a=[round(x_norm * width), round((1 - y_norm) * height)],
-            a_min=[0, 0],
-            a_max=[width - 1, height - 1],
-        )
-        return (world_x, world_y)
+    good_gaze_df.loc[:, "world_pos"] = map_gaze_to_frame_coord(good_gaze_df, frame_size)
+    full_gaze_df = filling_missing_gaze(good_gaze_df, frame_duration)
 
-    raw_gaze_df["world_coord"] = raw_gaze_df.apply(lambda row: cal_gaze_in_frame(row), axis=1)
-    final_gaze_df = filling_missing_gaze(raw_gaze_df, total_frame)
-
-    return final_gaze_df
+    return full_gaze_df
 
 
-def save_gaze_detection(gaze_df, detect_baby, gaze_in_segment, gaze_in_box, gaze_baby_dir):
+def save_gaze_detection(
+    gaze_df: pd.DataFrame,
+    detect_baby: list,
+    gaze_in_segment: list,
+    gaze_in_box: list,
+    gaze_baby_dir: str,
+):
     """Save gaze dataframe to disk.
 
     Args:
@@ -104,9 +160,11 @@ def save_gaze_detection(gaze_df, detect_baby, gaze_in_segment, gaze_in_box, gaze
         gaze_baby_dir (str): File directory where data is saved.
     """
 
-    gaze_df["is_baby"] = detect_baby
-    gaze_df["in_segmentation"] = gaze_in_segment
-    gaze_df["in_bounding_box"] = gaze_in_box
+    gaze_df.loc[:, ["is_baby", "in_segmentation", "in_bounding_box"]] = np.column_stack(
+        (detect_baby, gaze_in_segment, gaze_in_box)
+    )
+    # gaze_df["in_segmentation"] = gaze_in_segment
+    # gaze_df["in_bounding_box"] = gaze_in_box
     gaze_df.to_csv(gaze_baby_dir, index=False)
 
 
@@ -148,46 +206,3 @@ def check_gaze_in_detection(gaze_pos, mask, box):
     gaze_status = Gaze.IN_DETECTION if in_segment else Gaze.NOT_IN_DETECTION
 
     return in_segment, in_box, gaze_status
-
-
-# Not in use anymore
-def get_gaze_thres(gaze_df, total_frame):
-    """Get the lowest threshold of confidence user can set so that there is at
-    least one gaze point in each frame
-
-    :param gaze_df: dataframe containing gaze info
-    :param total_frame: number of video's frames
-
-    :return threshold: lowest threshold
-    :rtype: float
-    """
-
-    threshold_list = gaze_df["confidence"].drop_duplicates().sort_values()
-    for threshold in threshold_list:
-        good_gaze_df = gaze_df.loc[gaze_df["confidence"] > threshold]
-        if good_gaze_df["world_index"].nunique() < total_frame:
-            return threshold
-
-
-def get_gaze_in_frame(gaze_series, width, height):
-    """Calculate location of gaze corresponding to the video frame coordinate
-
-    :param gaze_series: all gazes in the video frame
-    :param width: width of the video frame
-    :param height: height of the video frame
-
-    :return x_img_coor: x coordinate of the gaze
-    :rtype: int
-    :return y_img_coor: y coordinate of the gaze
-    :rtype: int
-    """
-
-    x_norm_coor, y_norm_coor = (
-        gaze_series["norm_pos_x"].to_numpy(),
-        gaze_series["norm_pos_y"].to_numpy(),
-    )
-    x_img_coor, y_img_coor = (x_norm_coor * width).astype(int), ((1 - y_norm_coor) * height).astype(
-        int
-    )
-
-    return x_img_coor, y_img_coor
