@@ -3,42 +3,49 @@ import sys
 from datetime import datetime
 import cv2
 from tqdm import tqdm
-from utils import get_model
+from utils import get_model, get_clicking_frame_timeline
 from gaze import get_gaze_data, check_gaze_in_detection, save_gaze_detection
 from detection import detect_person_instance
 from visualize import visualize
+import toml
 
 
-def detect_baby(recording_dir, model_file, min_detection_score=0.93):
+def detect_baby(
+    recording_dir, model_file, frame_duration, output_dir, suffix_out_dir, min_detection_score=0.9
+):
     """Create new video with visualization of detected baby and gazes.
 
     Arg:
         recording_dir (str): Directory of exported recording from Pupil Player.
         config_file (str): Configuration file.
+        frame_duration (tuple of int): Start and end frame of the experiment.
+        output_dir (str): Directory of output folder.
+        suffix_out_dir (str): Suffix added to the names of video and csv files in the output folder.
         min_detection_score (float): Lowest accepted prediction score for the
-        detected person instance. Defaults to 0.93.
+            detected person instance. Defaults to 0.93.
     """
 
     # Get video and its metadata
     world_vid = os.path.join(recording_dir, "world.mp4")
     video_cap = cv2.VideoCapture(world_vid)
+    frame_start, frame_end = frame_duration
+    frame_count = frame_end - frame_start
+    video_cap.set(cv2.CAP_PROP_POS_FRAMES, frame_start)
     frame_rate = video_cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    frame_size = (width, height)
+    frame_size = (
+        int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+    )
     print(
         f"Frame rate: {round(frame_rate,2)} fps, "
         + f"total frames: {frame_count}, "
-        + f"width: {width}, height: {height}."
+        + f"width: {frame_size[0]}, height: {frame_size[1]}."
     )
 
     # Prepare output
-    dt_string = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    output_dir = os.path.join(recording_dir, "output", dt_string)
     os.makedirs(output_dir, exist_ok=True)
-    gaze_baby_dir = os.path.join(output_dir, f"gaze_positions_on_baby_{dt_string}.csv")
-    vid_dir = os.path.join(output_dir, f"world_view_with_detection_{dt_string}.avi")
+    gaze_baby_dir = os.path.join(output_dir, f"gaze_positions_on_baby_{suffix_out_dir}.csv")
+    vid_dir = os.path.join(output_dir, f"world_view_with_detection_{suffix_out_dir}.avi")
 
     # Start processing
     detect_baby = []
@@ -46,7 +53,7 @@ def detect_baby(recording_dir, model_file, min_detection_score=0.93):
     gaze_in_box = []
 
     predictor = get_model(model_file)
-    gaze_df = get_gaze_data(recording_dir, frame_count, frame_size)
+    gaze_df = get_gaze_data(recording_dir, frame_duration, frame_size)
 
     video_out = cv2.VideoWriter(
         filename=vid_dir,
@@ -57,9 +64,8 @@ def detect_baby(recording_dir, model_file, min_detection_score=0.93):
     )
 
     for frame_ind in tqdm(
-        iterable=range(frame_count),
+        iterable=range(frame_start, frame_end),
         desc="Processing frame",
-        total=frame_count,
         unit="frame",
         mininterval=5,
         miniters=1,
@@ -81,7 +87,7 @@ def detect_baby(recording_dir, model_file, min_detection_score=0.93):
                 detect_baby.extend([False] * num_gaze)
 
             # Check gaze in detection
-            all_gaze_pos = gaze_datum["world_coord"].to_list()
+            all_gaze_pos = gaze_datum.loc[:, "world_pos"].to_list()
             all_gaze_status = []
             for gaze_pos in all_gaze_pos:
                 in_segmentation, in_box, gaze_status = check_gaze_in_detection(
@@ -110,11 +116,28 @@ def detect_baby(recording_dir, model_file, min_detection_score=0.93):
 
 
 if __name__ == "__main__":
-    # new_baselines/mask_rcnn_regnetx_4gf_dds_FPN_400ep_LSJ.py  accurate and fast 43.5 AP, 0.071 s
-    # new_baselines/mask_rcnn_R_101_FPN_400ep_LSJ.py  most accurate 43.7 AP, 0.073 s
-    # "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml" most accurate 39.5 AP, 0.103 s
-    # "COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml" accurate and fast 38.6 AP, 0.056 s
-    # "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml" fastest 0.043 AP, 37.2 s
-    model_config_file = "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
-    dir = sys.argv[-1]  # "public_data/2022-02-26-23-45-57"
-    detect_baby(dir, model_config_file)
+    config = toml.load("config.toml")
+    seed = config.get("software_settings").get("seed_number")
+    # set_all_seeds(seed)
+    eye_tracking_dir = config.get("data_directory").get("mother_infant_2")
+    model_config_file = config.get("model").get("model_config_path")
+
+    output_dir = os.path.join(
+        eye_tracking_dir, "output", datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+    )
+    frame_timeline = get_clicking_frame_timeline(os.path.join(eye_tracking_dir, "end_frames.txt"))
+
+    print(eye_tracking_dir)
+    print(model_config_file)
+    print(output_dir)
+    print(frame_timeline)
+    print()
+
+    for exp_id, frame_duration in enumerate(frame_timeline):
+        detect_baby(
+            recording_dir=eye_tracking_dir,
+            model_file=model_config_file,
+            frame_duration=frame_duration,
+            output_dir=output_dir,
+            suffix_out_dir=f"part_{exp_id+1}",
+        )
