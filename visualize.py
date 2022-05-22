@@ -32,7 +32,7 @@ def visualize(frame, segmentation, pred_score, gaze_list, show=False):
                 segmentation,
                 color="cornflowerblue",  # "mediumblue"
                 edge_color="blue",
-                text=f"baby {round(pred_score*100, 1)}%",
+                # text=f"baby {round(pred_score*100, 1)}%",
                 alpha=0.4,
             )
             .get_image()
