@@ -19,19 +19,19 @@ def detect_person_instance(frame, predictor, pred_threshold):
 
         Note: If no person is detected, the first 2 return values are arrays with no element.
     """
-    try:
+    try:  # find bette way
         outputs = predictor(frame)
+        person_id = predictor.metadata.thing_classes.index("person")
+
     except IndexError:
+        person_id = 0
         predictor.eval()
         with torch.no_grad():
             outputs = predictor(
                 [{"image": torch.as_tensor(frame.astype("float32").transpose(2, 0, 1)).to("cuda")}]
             )[0]
+
     output_instances = outputs["instances"]
-    try:
-        person_id = predictor.metadata.thing_classes.index("person")
-    except AttributeError:
-        person_id = 0
     person_instances = output_instances[output_instances.pred_classes == person_id]
     conf_person_instances = person_instances[person_instances.scores > pred_threshold]
 
