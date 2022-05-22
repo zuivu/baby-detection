@@ -4,7 +4,8 @@ Implement baby detection on video recorded from [Pupil glasses](https://pupil-la
 
 ## 1. Setup the system
 
-### 1.1 Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and create a virtual environment
+### 1.1 Conda environment 
+[Install Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) (a mini version of Anaconda)
 
 ```
 conda create --name <env_name>
@@ -15,24 +16,27 @@ conda install pandas
 pip install opencv-python
 ```
 
-### 1.2 Builiding detectron2 from source
+### 1.2 Detectron2
+
+#### 1.2.1 Linux
 
 [Official guideline](https://detectron2.readthedocs.io/en/latest/tutorials/install.html#build-detectron2-from-source)
 
-#### 1.2.1 Get GCC
+1. Get GCC  
+    **Note**: The following GCC guideline is just tested only on [narvi cluster](https://tuni-itc.github.io/wiki/Technical-Notes/tuni-narvi-cluster/#how-do-i-install-mysoftware)
 
-**Note**: The following GCC guideline is used only for [narvi cluster](https://tuni-itc.github.io/wiki/Technical-Notes/tuni-narvi-cluster/#how-do-i-install-my-software)
+    - Check GCC's version:  
+      `gcc --version` or `g++ --version`
+    - Check all available versions of GCC
+      `module spider GCC`
+    - Load any GCC version satisfying the [requirement](https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements).  
+      `module load GCC/<gcc_version>`
 
-- Check GCC's version:  
-  `gcc --version` or `g++ --version`
-- Check all available versions of GCC
-  `module spider GCC`
-- Load any GCC version satisfying the [requirement](https://detectron2.readthedocs.io/en/latest/tutorials/install.html#requirements).  
-  `module load GCC/<gcc_version>`
+2. Build detectron2  
+    `python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'`
 
-#### 1.2.2 Build detectron2
-
-`python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'`
+#### 1.2.2 Window
+Follow instruction from this discussion: https://github.com/facebookresearch/detectron2/discussions/3308#discussion-3498102
 
 ## 2. Run the programme
 
