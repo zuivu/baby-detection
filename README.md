@@ -11,9 +11,11 @@ Implement baby detection on video recorded from [Pupil glasses](https://pupil-la
 conda create --name <env_name>
 conda activate <env_name>
 conda install -c anaconda cudatoolkit
-conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch` 
 conda install pandas
 pip install opencv-python
+conda install ipykernel
+conda install seaborn
 ```
 
 ### 1.2 Detectron2
@@ -24,7 +26,6 @@ pip install opencv-python
 
 1. Get GCC  
     **Note**: The following GCC guideline is just tested only on [narvi cluster](https://tuni-itc.github.io/wiki/Technical-Notes/tuni-narvi-cluster/#how-do-i-install-mysoftware)
-
     - Check GCC's version:  
       `gcc --version` or `g++ --version`
     - Check all available versions of GCC
@@ -38,11 +39,10 @@ pip install opencv-python
 #### 1.2.2 Window
 Follow instruction from [this Detectron2's discussion](https://github.com/facebookresearch/detectron2/discussions/3308#discussion-3498102).  
 TLDR:
-   1. Create environment: `conda create -n <env_name>` followed by `conda activate <env_name>`
-   2. Pytorch: `conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch`  
-   3. Cython: `pip install cython`
-   4. Detectron2: Go to environment location (find from first command's output) and `git clone https://github.com/facebookresearch/detectron2.git`
-   5. `python -m pip install -e detectron2`  
+   1. Create environment: `conda create -n <env_name>` followed by `conda activate <env_name>` 
+   2. Cython: `pip install cython`
+   3. Detectron2: Go to environment location (find from first command's output) and `git clone https://github.com/facebookresearch/detectron2.git`
+   4. `python -m pip install -e detectron2`  
 
 **Note**: If one encounters this error when trying to run `python baby_detection.py`
 ```
@@ -50,8 +50,14 @@ ImportError: DLL load failed while importing win32file: The specified procedure 
 ```
 then also run `conda install pywin32`.
 
-## 2. Run the programme
+## 2. Software settings
+Defined in [config.toml](config.toml):
+- `model_config_path`: Pick from `all_model_config_paths` to use in the program
+- `data_directory`: Pick from `all_data_directories` to use in the program
+- `min_detection_score`: Minimum score of for model's predictions 
 
+## 3. Run the programme
+### 3.1 Linux (narvi cluster)
 - Option 1: Run the following command in the terminal
 
 ```
@@ -95,3 +101,6 @@ and run the following command in the terminal:
 ```
 sbatch run.sh
 ```
+
+### 3.2 Window
+`python baby_detection.py`
