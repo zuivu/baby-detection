@@ -36,7 +36,19 @@ pip install opencv-python
     `python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'`
 
 #### 1.2.2 Window
-Follow instruction from this discussion: https://github.com/facebookresearch/detectron2/discussions/3308#discussion-3498102
+Follow instruction from [this Detectron2's discussion](https://github.com/facebookresearch/detectron2/discussions/3308#discussion-3498102).  
+TLDR:
+   1. Create environment: `conda create -n <env_name>` followed by `conda activate <env_name>`
+   2. Pytorch: `conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch`  
+   3. Cython: `pip install cython`
+   4. Detectron2: Go to environment location (find from first command's output) and `git clone https://github.com/facebookresearch/detectron2.git`
+   5. `python -m pip install -e detectron2`  
+
+**Note**: If one encounters this error when trying to run `python baby_detection.py`
+```
+ImportError: DLL load failed while importing win32file: The specified procedure could not be found.
+```
+then also run `conda install pywin32`.
 
 ## 2. Run the programme
 
@@ -75,7 +87,7 @@ export PYTHONPATH=$PYTHONPATH:.
 
 module load CUDA
 source activate <env_name>
-python baby_detection.py <recording_dir>
+python baby_detection.py
 ```
 
 and run the following command in the terminal:
