@@ -9,11 +9,13 @@ all_model_config_paths = [
 model_config_path = "COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml"
 
 
-[data_directory]
-experiment = "../public_data/2022-02-26-23-45-57"
-mother_infant_1 = "../GazeMoCap/100209/100209_eye"
-mother_infant_2 = "../GazeMoCap/150210/150210_Eye"
-
+[data]
+all_data_directories = [
+    "../public_data/2022-02-26-23-45-57",   # experiment data 
+    "../GazeMoCap/100209/100209_eye",       # mother-infant pair 1
+    "../GazeMoCap/150210/150210_Eye",       # mother-infant pair 2
+]
+data_directory = "../GazeMoCap/150210/150210_Eye"
 
 [software_settings]
 seed_number = 6
