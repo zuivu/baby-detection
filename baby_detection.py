@@ -117,10 +117,8 @@ def detect_baby(
 
 if __name__ == "__main__":
     config = toml.load("config.toml")
-    seed = config.get("software_settings").get("seed_number")
-    # set_all_seeds(seed)
-    eye_tracking_dir = config.get("data_directory").get("mother_infant_2")
     model_config_file = config.get("model").get("model_config_path")
+    eye_tracking_dir = config.get("data").get("data_directory")
 
     output_dir = os.path.join(
         eye_tracking_dir, "output", datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
