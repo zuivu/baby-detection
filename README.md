@@ -55,6 +55,7 @@ Defined in [config.toml](config.toml):
 - `model_config_path`: Pick from `all_model_config_paths` to use in the program
 - `data_directory`: Pick from `all_data_directories` to use in the program
 - `min_detection_score`: Minimum score of for model's predictions 
+- `seed_number`: Seed number to generate pseudo-random numbers for reproductiveity
 
 ## 3. Run the programme
 ### 3.1 Linux (narvi cluster)
