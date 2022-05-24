@@ -117,6 +117,8 @@ def detect_baby(
 
 if __name__ == "__main__":
     config = toml.load("config.toml")
+    seed = config.get("seed_number")
+    set_all_seeds(seed)
     model_config_file = config.get("model").get("model_config_path")
     eye_tracking_dir = config.get("data").get("data_directory")
 
