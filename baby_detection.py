@@ -11,7 +11,7 @@ import toml
 
 
 def detect_baby(
-    recording_dir, model_file, frame_duration, output_dir, suffix_out_dir, min_detection_score=0.9
+    recording_dir, model_file, frame_duration, output_dir, suffix_out_dir, min_detection_score
 ):
     """Create new video with visualization of detected baby and gazes.
 
@@ -117,10 +117,11 @@ def detect_baby(
 
 if __name__ == "__main__":
     config = toml.load("config.toml")
-    seed = config.get("seed_number")
-    set_all_seeds(seed)
     model_config_file = config.get("model").get("model_config_path")
     eye_tracking_dir = config.get("data").get("data_directory")
+    min_detection_score = config.get("software_settings").get("min_detection_score")
+    seed = config.get("software_settings").get("seed_number")
+    set_all_seeds(seed)
 
     output_dir = os.path.join(
         eye_tracking_dir, "output", datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
@@ -140,4 +141,5 @@ if __name__ == "__main__":
             frame_duration=frame_duration,
             output_dir=output_dir,
             suffix_out_dir=f"part_{exp_id+1}",
+            min_detection_score=min_detection_score
         )
