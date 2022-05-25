@@ -1,13 +1,14 @@
 import os
 import sys
+import toml
 from datetime import datetime
 import cv2
 from tqdm import tqdm
+from seed import set_all_seeds
 from utils import get_model, get_clicking_frame_timeline
 from gaze import get_gaze_data, check_gaze_in_detection, save_gaze_detection
 from detection import detect_person_instance
 from visualize import visualize
-import toml
 
 
 def detect_baby(
