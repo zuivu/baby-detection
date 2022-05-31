@@ -71,7 +71,7 @@ srun \
 --ntasks 1 \
 --cpus-per-task 10 \
 --time 01:30:00 \
-python baby_detection.py <recording_dir>
+python baby_detection.py
 ```
 
 - Option 2: Create a bash file `run.sh` using the following template:
